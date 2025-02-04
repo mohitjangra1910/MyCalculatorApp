@@ -4,9 +4,8 @@ pipeline {
     stages {
         stage('Compile') {
             steps {
-                // Create output directory if not exists
+                // Create output directory if not exists and compile the main source code
                 sh 'mkdir -p out'
-                // Compile the source code
                 sh 'javac -d out src/main/java/com/example/Calculator.java'
             }
         }
@@ -14,35 +13,36 @@ pipeline {
             steps {
                 // Compile the test code and run tests
                 sh 'javac -d out -cp out src/test/java/com/example/CalculatorTest.java'
-                // Run the tests; if tests fail, exit code will be non-zero and fail the build.
                 sh 'java -cp out com.example.CalculatorTest'
             }
         }
         stage('Package') {
             steps {
-                // Create a JAR file of the application
+                // Create an executable JAR file of the application
                 sh 'cd out && jar cfe CalculatorApp.jar com.example.Calculator com/example/Calculator.class'
             }
         }
         stage('Deploy') {
             steps {
-                // Deployment can be as simple as copying the jar to a deployment directory,
-                // or you can add further steps such as restarting a service.
-                // For demonstration, we copy the JAR file to /opt/apps (ensure that directory exists and is writable)
-                sh 'sudo mkdir -p /opt/apps'
+                // Copy the JAR file to the deployment directory
                 sh 'sudo cp out/CalculatorApp.jar /opt/apps/'
-                // Optionally, run the jar file in background:
-                // sh 'nohup java -jar /opt/apps/CalculatorApp.jar &'
+            }
+        }
+        stage('Run Application') {
+            steps {
+                // Optionally stop any existing instance before starting a new one, then run the application in background
+                // (If you need to stop the existing instance, add a command here.)
+                sh 'nohup java -jar /opt/apps/CalculatorApp.jar > /opt/apps/app.log 2>&1 &'
             }
         }
     }
-    
+
     post {
         success {
-            echo 'Build and deployment succeeded!'
+            echo 'Build, deployment, and application run succeeded!'
         }
         failure {
-            echo 'Build or deployment failed.'
+            echo 'Build, deployment, or application run failed.'
         }
     }
 }
